@@ -5,6 +5,7 @@ import { createAuth, type AuthOptions } from "./auth";
 import { ConfigError, parseConfig, type Config } from "./config";
 import { createDatabase, createPool, type AnyDatabase } from "./db/connection";
 import { databaseProbe } from "./db/probe";
+import { databaseContacts } from "./db/contacts";
 import { databaseUserStats } from "./db/user-stats";
 
 /** The auth options a configuration gives: sign-in is limited off a local stack. */
@@ -30,6 +31,7 @@ export async function start(
     appUrl: config.appUrl,
     auth: createAuth(authOptions(config, db)),
     userStats: databaseUserStats(db),
+    contacts: databaseContacts(db),
   });
   return new Promise((resolve) => {
     const server = app.listen(config.port, () => {

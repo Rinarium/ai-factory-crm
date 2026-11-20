@@ -2,6 +2,7 @@ import type { Server } from "node:http";
 import { createApp } from "../../src/app";
 import { createAuth } from "../../src/auth";
 import type { Probe } from "../../src/health";
+import { databaseContacts } from "../../src/db/contacts";
 import { databaseUserStats } from "../../src/db/user-stats";
 import { seedDemoUsers } from "../../src/seed";
 import { migratedDatabase, type TestDatabase } from "./database";
@@ -17,6 +18,8 @@ export type AppServers = {
   // The same, with the demo user seeded; sign-in is not rate limited unless
   // asked, as on a local stack.
   startSeeded: (options?: { rateLimited?: boolean }) => Promise<string>;
+  // The same, also returning the database, for a test that writes rows.
+  startSeededWithDatabase: () => Promise<{ base: string; db: TestDatabase }>;
   // The same, over a database that is already closed, so every session
   // lookup fails.
   startOnClosedDatabase: () => Promise<string>;
@@ -34,6 +37,7 @@ async function listen(
     probe,
     appUrl,
     userStats: databaseUserStats(db),
+    contacts: databaseContacts(db),
     auth: createAuth({
       db,
       appUrl,
@@ -62,6 +66,11 @@ export function appServers(): AppServers {
       const db = await migratedDatabase();
       await seedDemoUsers(db, { FACTORY_LOCAL_STACK: "1" });
       return listen(open, db, () => Promise.resolve(true), rateLimited);
+    },
+    startSeededWithDatabase: async () => {
+      const db = await migratedDatabase();
+      await seedDemoUsers(db, { FACTORY_LOCAL_STACK: "1" });
+      return { base: await listen(open, db, () => Promise.resolve(true)), db };
     },
     startOnClosedDatabase: async () => {
       const db = await migratedDatabase();
